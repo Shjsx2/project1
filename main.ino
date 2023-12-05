@@ -49,9 +49,7 @@ void handleMessage(WebsocketsMessage message) {
   // parse message
   // check if data is parsable to double
   double receivedIntensity = message.data().toDouble();
-  if (receivedIntensity != 0.0) {
-    intensity = message.data().toDouble();
-  }
+  intensity = message.data().toDouble();
   lastReceivedTime = millis();
   Serial.print("Intensity: ");
   Serial.println(intensity);
@@ -73,7 +71,7 @@ void loop() {
   }
 
   unsigned long currentTime = millis();
-  if (currentTime - lastReceivedTime > TIMEOUT_MS) {
+  if (currentTime - lastReceivedTime > TIMEOUT_MS || intensity == 0.0) {
     powerstate = false;
   } else {
     haplevel = intensity * 5;
