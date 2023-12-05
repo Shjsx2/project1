@@ -16,10 +16,11 @@ boolean powerstate = true;//toggle on (没写)
 String uart = "";
 
 WebsocketsServer server;
-const char* url = "localhost:8080"
+const char* url = "localhost:8080";
 
 double intensity = 0.0; // current vibration intensity
 unsigned long lastReceivedTime = 0; // last time a message was received from server
+const unsigned int TIMEOUT_MS = 15000;
 
 void setup() {
   // put your setup code here, to run once:
@@ -66,9 +67,16 @@ void loop() {
   }
 
   auto client = server.accept();
-  if (client.available) {
+  if (client.available()) {
     auto msg = client.readBlocking();
     handleMessage(msg);
+  }
+
+  unsigned long currentTime = millis();
+  if (currentTime - lastReceivedTime > 15000) {
+    powerstate = false;
+  } else {
+    haplevel = intensity * 5;
   }
 
   if (powerstate == true) {
