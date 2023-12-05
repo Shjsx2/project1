@@ -1,4 +1,7 @@
 #include <WiFi.h>
+#include <ArduinoWebsockets.h>
+
+using namespace websockets;
 
 const char* ssid     = "Poop"; // Change this to your WiFi SSID
 const char* password = "00000000"; // Change this to your WiFi password
@@ -11,6 +14,12 @@ int a = 51, b = 102, c = 153, d = 204, e = 255;
 
 boolean powerstate = true;//toggle on (没写)
 String uart = "";
+
+WebsocketsClient client;
+const char* server = "localhost:8080"
+
+double intensity = 0.0; // current vibration intensity
+unsigned long lastReceivedTime = 0; // last time a message was received from server
 
 void setup() {
   // put your setup code here, to run once:
@@ -27,7 +36,41 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+
+  /** Websocket initialization */
+  client.onMessage(onMessage);
+  client.onEvent(event);
+
+  client.connect(server);
 }
+
+void onMessage(WebsocketsMessage message) {
+  Serial.print("Got Message: ");
+  Serial.println(message.data());
+
+  // parse message
+  // check if data is parsable to double
+  double receivedIntensity = message.data().toDouble();
+  if (receivedIntensity != 0.0) {
+    intensity = message.data().toDouble();
+  }
+  lastReceivedTime = millis();
+  Serial.print("Intensity: ");
+  Serial.println(intensity);
+  Serial.print("Last Received Time: ");
+  Serial.println(lastReceivedTime);
+}
+
+void onEvents(WebsocketsEvent event, String data) {
+    if(event == WebsocketsEvent::ConnectionOpened) {
+        Serial.println("Connnection Opened");
+    } else if(event == WebsocketsEvent::ConnectionClosed) {
+        Serial.println("Connnection Closed");
+    } else if(event == WebsocketsEvent::GotPing) {
+        Serial.println("Got a Ping");
+    } 
+}
+
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -35,6 +78,9 @@ void loop() {
     uart = Serial.readString();
     haplevel = uart.toInt();
   }
+
+  client.poll(); // receive new message from server
+
   if (powerstate == true) {
     if (haplevel == 1) {
       for (int i = 0; i < a; i++) { //由于存储器位数的限制，i的范围为0~255
