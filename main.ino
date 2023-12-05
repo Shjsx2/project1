@@ -15,8 +15,8 @@ int a = 51, b = 102, c = 153, d = 204, e = 255;
 boolean powerstate = true;//toggle on (没写)
 String uart = "";
 
-WebsocketsClient client;
-const char* server = "localhost:8080"
+WebsocketsServer server;
+const char* url = "localhost:8080"
 
 double intensity = 0.0; // current vibration intensity
 unsigned long lastReceivedTime = 0; // last time a message was received from server
@@ -38,13 +38,10 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   /** Websocket initialization */
-  client.onMessage(onMessage);
-  client.onEvent(event);
-
-  client.connect(server);
+  server.listen(8080);
 }
 
-void onMessage(WebsocketsMessage message) {
+void handleMessage(WebsocketsMessage message) {
   Serial.print("Got Message: ");
   Serial.println(message.data());
 
@@ -61,17 +58,6 @@ void onMessage(WebsocketsMessage message) {
   Serial.println(lastReceivedTime);
 }
 
-void onEvents(WebsocketsEvent event, String data) {
-    if(event == WebsocketsEvent::ConnectionOpened) {
-        Serial.println("Connnection Opened");
-    } else if(event == WebsocketsEvent::ConnectionClosed) {
-        Serial.println("Connnection Closed");
-    } else if(event == WebsocketsEvent::GotPing) {
-        Serial.println("Got a Ping");
-    } 
-}
-
-
 void loop() {
   // put your main code here, to run repeatedly:
   if (Serial.available() > 0) {
@@ -79,7 +65,11 @@ void loop() {
     haplevel = uart.toInt();
   }
 
-  client.poll(); // receive new message from server
+  auto client = server.accept();
+  if (client.available) {
+    auto msg = client.readBlocking();
+    handleMessage(msg);
+  }
 
   if (powerstate == true) {
     if (haplevel == 1) {
